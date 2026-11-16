@@ -1,0 +1,6 @@
+{
+  "name": "CyberScout",
+  "description": "أكاديمية السلوك الرقمي الآمن للكشاف الجزائري: ألعاب تفاعلية، صوت بالدارجة الجزائرية، شات ذكية، وشارات رقمية.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

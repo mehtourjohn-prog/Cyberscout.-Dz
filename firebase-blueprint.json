@@ -1,0 +1,230 @@
+{
+  "entities": {
+    "ScoutProfile": {
+      "title": "ScoutProfile",
+      "description": "Scout user profile and summary progress stats",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Authenticated Firebase UID"
+        },
+        "scoutName": {
+          "type": "string",
+          "description": "Display name of the scout"
+        },
+        "ageGroup": {
+          "type": "string",
+          "enum": ["cubs", "scouts"],
+          "description": "Age division: cubs (8-11) or scouts (12-15)"
+        },
+        "dialect": {
+          "type": "string",
+          "enum": ["dz", "ar"],
+          "description": "Preferred dialect: Algerian Darija (dz) or Standard Arabic (ar)"
+        },
+        "totalPoints": {
+          "type": "integer",
+          "description": "Sum of best scores across games (0..2000)"
+        },
+        "completedCount": {
+          "type": "integer",
+          "description": "Number of games completed with >= 70% (0..20)"
+        },
+        "badgesCount": {
+          "type": "integer",
+          "description": "Number of unlocked axis badges (0..5)"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp on creation (FieldValue.serverTimestamp())"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp on update (FieldValue.serverTimestamp())"
+        }
+      },
+      "required": ["userId", "scoutName", "ageGroup", "dialect", "totalPoints", "completedCount", "badgesCount", "createdAt", "updatedAt"]
+    },
+    "GameProgress": {
+      "title": "GameProgress",
+      "description": "Best score and completion state for one of the 20 CyberScout games",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Authenticated Firebase UID"
+        },
+        "gameIndex": {
+          "type": "integer",
+          "description": "Game index 0..19"
+        },
+        "axisIndex": {
+          "type": "integer",
+          "description": "Axis index 0..4"
+        },
+        "bestScore": {
+          "type": "integer",
+          "description": "Best score out of 10"
+        },
+        "attempts": {
+          "type": "integer",
+          "description": "Number of attempts"
+        },
+        "passed": {
+          "type": "boolean",
+          "description": "True if bestScore >= 7"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp on creation"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp on update"
+        }
+      },
+      "required": ["userId", "gameIndex", "axisIndex", "bestScore", "attempts", "passed", "createdAt", "updatedAt"]
+    },
+    "ChatMessage": {
+      "title": "ChatMessage",
+      "description": "Smart chat conversation message with Scout Amin",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Authenticated Firebase UID"
+        },
+        "sender": {
+          "type": "string",
+          "enum": ["user", "bot"],
+          "description": "Message author role"
+        },
+        "text": {
+          "type": "string",
+          "description": "Message body"
+        },
+        "dialect": {
+          "type": "string",
+          "enum": ["dz", "ar"],
+          "description": "Dialect active for this message"
+        },
+        "isWarning": {
+          "type": "boolean",
+          "description": "True if sensitive PII warning triggered"
+        },
+        "suggestedGameIndex": {
+          "type": "integer",
+          "description": "Optional recommended game index (-1 if none)"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp on creation"
+        }
+      },
+      "required": ["userId", "sender", "text", "dialect", "isWarning", "suggestedGameIndex", "createdAt"]
+    },
+    "DigitalBadge": {
+      "title": "DigitalBadge",
+      "description": "Firestore-persisted Digital Badge unlocked upon completing all 4 games in an educational axis",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Authenticated Firebase UID"
+        },
+        "axisIndex": {
+          "type": "integer",
+          "description": "Educational axis index 0..4"
+        },
+        "badgeCode": {
+          "type": "string",
+          "description": "Unique digital verification code for the badge"
+        },
+        "titleDz": {
+          "type": "string",
+          "description": "Algerian Darija title of the axis badge"
+        },
+        "titleAr": {
+          "type": "string",
+          "description": "Standard Arabic title of the axis badge"
+        },
+        "icon": {
+          "type": "string",
+          "description": "Badge emblem emoji or symbol"
+        },
+        "passedGamesCount": {
+          "type": "integer",
+          "description": "Number of games passed (>= 7/10) in this axis (0..4)"
+        },
+        "totalGamesInAxis": {
+          "type": "integer",
+          "description": "Total games required to complete the axis (4)"
+        },
+        "axisPoints": {
+          "type": "integer",
+          "description": "Total points accumulated across this axis (0..400)"
+        },
+        "unlocked": {
+          "type": "boolean",
+          "description": "True when passedGamesCount == 4 (axis completed)"
+        },
+        "isFeatured": {
+          "type": "boolean",
+          "description": "True if scout pinned this earned badge as featured emblem"
+        },
+        "earnedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when badge was unlocked (null while locked)"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp on creation"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp on update"
+        }
+      },
+      "required": [
+        "userId", "axisIndex", "badgeCode", "titleDz", "titleAr", "icon",
+        "passedGamesCount", "totalGamesInAxis", "axisPoints", "unlocked",
+        "isFeatured", "earnedAt", "createdAt", "updatedAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": {
+        "$ref": "#/entities/ScoutProfile"
+      },
+      "description": "User-owned scout profile and aggregate stats"
+    },
+    "/users/{userId}/gameProgress/{gameId}": {
+      "schema": {
+        "$ref": "#/entities/GameProgress"
+      },
+      "description": "Per-game progress for an authenticated scout"
+    },
+    "/users/{userId}/chatMessages/{messageId}": {
+      "schema": {
+        "$ref": "#/entities/ChatMessage"
+      },
+      "description": "Saved smart chat history between the scout and Scout Amin"
+    },
+    "/users/{userId}/badges/{badgeId}": {
+      "schema": {
+        "$ref": "#/entities/DigitalBadge"
+      },
+      "description": "Firestore-managed Digital Badges earned upon completing educational axes"
+    }
+  }
+}

@@ -1,0 +1,189 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global Safety Net: Deny everything by default
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidScoutProfile(data, userId) {
+      return data.keys().hasAll([
+               'userId', 'scoutName', 'ageGroup', 'dialect',
+               'totalPoints', 'completedCount', 'badgesCount',
+               'createdAt', 'updatedAt'
+             ]) &&
+             data.keys().hasOnly([
+               'userId', 'scoutName', 'ageGroup', 'dialect',
+               'totalPoints', 'completedCount', 'badgesCount',
+               'createdAt', 'updatedAt'
+             ]) &&
+             data.userId is string && data.userId == userId &&
+             data.scoutName is string && data.scoutName.size() >= 1 && data.scoutName.size() <= 60 &&
+             data.ageGroup in ['cubs', 'scouts'] &&
+             data.dialect in ['dz', 'ar'] &&
+             data.totalPoints is int && data.totalPoints >= 0 && data.totalPoints <= 2000 &&
+             data.completedCount is int && data.completedCount >= 0 && data.completedCount <= 20 &&
+             data.badgesCount is int && data.badgesCount >= 0 && data.badgesCount <= 5 &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidGameProgress(data, userId) {
+      return data.keys().hasAll([
+               'userId', 'gameIndex', 'axisIndex', 'bestScore',
+               'attempts', 'passed', 'createdAt', 'updatedAt'
+             ]) &&
+             data.keys().hasOnly([
+               'userId', 'gameIndex', 'axisIndex', 'bestScore',
+               'attempts', 'passed', 'createdAt', 'updatedAt'
+             ]) &&
+             data.userId is string && data.userId == userId &&
+             data.gameIndex is int && data.gameIndex >= 0 && data.gameIndex <= 19 &&
+             data.axisIndex is int && data.axisIndex >= 0 && data.axisIndex <= 4 &&
+             data.bestScore is int && data.bestScore >= 0 && data.bestScore <= 10 &&
+             data.attempts is int && data.attempts >= 1 && data.attempts <= 100000 &&
+             data.passed is bool &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidChatMessage(data, userId) {
+      return data.keys().hasAll([
+               'userId', 'sender', 'text', 'dialect',
+               'isWarning', 'suggestedGameIndex', 'createdAt'
+             ]) &&
+             data.keys().hasOnly([
+               'userId', 'sender', 'text', 'dialect',
+               'isWarning', 'suggestedGameIndex', 'createdAt'
+             ]) &&
+             data.userId is string && data.userId == userId &&
+             data.sender in ['user', 'bot'] &&
+             data.text is string && data.text.size() >= 1 && data.text.size() <= 8000 &&
+             data.dialect in ['dz', 'ar'] &&
+             data.isWarning is bool &&
+             data.suggestedGameIndex is int && data.suggestedGameIndex >= -1 && data.suggestedGameIndex <= 19 &&
+             data.createdAt is timestamp && data.createdAt <= request.time;
+    }
+
+    function isValidDigitalBadge(data, userId, badgeId) {
+      return badgeId in ['badge_0', 'badge_1', 'badge_2', 'badge_3', 'badge_4'] &&
+             data.keys().hasAll([
+               'userId', 'axisIndex', 'badgeCode', 'titleDz', 'titleAr', 'icon',
+               'passedGamesCount', 'totalGamesInAxis', 'axisPoints', 'unlocked',
+               'isFeatured', 'earnedAt', 'createdAt', 'updatedAt'
+             ]) &&
+             data.keys().hasOnly([
+               'userId', 'axisIndex', 'badgeCode', 'titleDz', 'titleAr', 'icon',
+               'passedGamesCount', 'totalGamesInAxis', 'axisPoints', 'unlocked',
+               'isFeatured', 'earnedAt', 'createdAt', 'updatedAt'
+             ]) &&
+             data.userId is string && data.userId == userId &&
+             data.axisIndex is int && data.axisIndex >= 0 && data.axisIndex <= 4 &&
+             badgeId == 'badge_' + string(data.axisIndex) &&
+             data.badgeCode is string && data.badgeCode.size() >= 3 && data.badgeCode.size() <= 64 &&
+             data.titleDz is string && data.titleDz.size() >= 1 && data.titleDz.size() <= 100 &&
+             data.titleAr is string && data.titleAr.size() >= 1 && data.titleAr.size() <= 100 &&
+             data.icon is string && data.icon.size() >= 1 && data.icon.size() <= 16 &&
+             data.passedGamesCount is int && data.passedGamesCount >= 0 && data.passedGamesCount <= 4 &&
+             data.totalGamesInAxis is int && data.totalGamesInAxis == 4 &&
+             data.axisPoints is int && data.axisPoints >= 0 && data.axisPoints <= 400 &&
+             data.unlocked is bool &&
+             data.isFeatured is bool &&
+             (!data.isFeatured || data.unlocked) &&
+             (
+               (!data.unlocked && data.passedGamesCount < 4 && data.earnedAt == null) ||
+               (data.unlocked && data.passedGamesCount == 4 && data.earnedAt is timestamp && data.earnedAt <= request.time)
+             ) &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    match /users/{userId} {
+      allow get: if isOwner(userId) && isValidId(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId) &&
+                       isValidId(userId) &&
+                       isValidScoutProfile(incoming(), userId);
+      allow update: if isOwner(userId) &&
+                       isValidId(userId) &&
+                       isValidScoutProfile(incoming(), userId) &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().diff(existing()).affectedKeys().hasOnly([
+                         'scoutName', 'ageGroup', 'dialect',
+                         'totalPoints', 'completedCount', 'badgesCount', 'updatedAt'
+                       ]);
+      allow delete: if isOwner(userId) && isValidId(userId);
+
+      match /gameProgress/{gameId} {
+        allow get: if isOwner(userId) && isValidId(gameId);
+        allow list: if isOwner(userId);
+        allow create: if isOwner(userId) &&
+                         isValidId(gameId) &&
+                         isValidGameProgress(incoming(), userId);
+        allow update: if isOwner(userId) &&
+                         isValidId(gameId) &&
+                         isValidGameProgress(incoming(), userId) &&
+                         incoming().userId == existing().userId &&
+                         incoming().gameIndex == existing().gameIndex &&
+                         incoming().axisIndex == existing().axisIndex &&
+                         incoming().createdAt == existing().createdAt &&
+                         incoming().diff(existing()).affectedKeys().hasOnly([
+                           'bestScore', 'attempts', 'passed', 'updatedAt'
+                         ]);
+        allow delete: if isOwner(userId) && isValidId(gameId);
+      }
+
+      match /chatMessages/{messageId} {
+        allow get: if isOwner(userId) && isValidId(messageId);
+        allow list: if isOwner(userId);
+        allow create: if isOwner(userId) &&
+                         isValidId(messageId) &&
+                         isValidChatMessage(incoming(), userId);
+        allow update: if false;
+        allow delete: if isOwner(userId) && isValidId(messageId);
+      }
+
+      match /badges/{badgeId} {
+        allow get: if isOwner(userId) && isValidId(badgeId);
+        allow list: if isOwner(userId);
+        allow create: if isOwner(userId) &&
+                         isValidId(badgeId) &&
+                         isValidDigitalBadge(incoming(), userId, badgeId);
+        allow update: if isOwner(userId) &&
+                         isValidId(badgeId) &&
+                         isValidDigitalBadge(incoming(), userId, badgeId) &&
+                         incoming().userId == existing().userId &&
+                         incoming().axisIndex == existing().axisIndex &&
+                         incoming().createdAt == existing().createdAt &&
+                         (!existing().unlocked || (incoming().unlocked && incoming().earnedAt == existing().earnedAt)) &&
+                         incoming().diff(existing()).affectedKeys().hasOnly([
+                           'badgeCode', 'titleDz', 'titleAr', 'icon',
+                           'passedGamesCount', 'axisPoints', 'unlocked',
+                           'isFeatured', 'earnedAt', 'updatedAt'
+                         ]);
+        allow delete: if isOwner(userId) && isValidId(badgeId);
+      }
+    }
+  }
+}
